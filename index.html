@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>snake</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
+</head>
+<body onload="onload()" onkeydown="whichButton(event)">
+<div id="container" onmousedown="turnRight()"
+     tabindex="0"></div>
+<div><h1 id = 'score' class = 'textH1'></h1></div>
+</body>
+<script>
+    var tableSizeX = 14;
+    var tableSizeY = 10;
+    var snake = [[0, 1], [0, 0]];
+    var currentPoint = "0002";
+    var keyLeft = 37;
+    var keyUp = 38;
+    var keyRight = 39;
+    var keyDown = 40;
+    var keySpace = 32;
+    var delay = 300;
+    var up = 0;
+    var right = 1;
+    var down = 2;
+    var left = 3;
+    var direct = up;
+    var allCells = [];
+    var interval;
+    var speedUp = 4;
+    var isPaused =  false;
+    var canTurnUpDown = false;
+    var canTurnRightLeft = true;
+    var score = 0;
+    var isGameOver = false;
+
+    function draw() {
+        console.log("draw");
+        console.log(delay);
+        var xHead = snake[0][0];
+        var yHead = snake[0][1];
+        if (direct == up) {
+            yHead = (yHead + 1) % tableSizeY;
+        }
+        if (direct == right) {
+            xHead = (xHead + 1) % tableSizeX;
+        }
+        if (direct == down) {
+            yHead = (yHead + tableSizeY - 1) % tableSizeY;
+        }
+        if (direct == left) {
+            xHead = (xHead + tableSizeX - 1) % tableSizeX;
+        }
+        if (!checkIfContainsSame([xHead, yHead])){
+            console.log("game over!");
+            gameOver();
+        }
+        snake.unshift([xHead, yHead]);
+        var length = snake.length;
+        var xTail = snake[length - 1][0];
+        var yTail = snake[length - 1][1];
+        var currentHeadId = concat(xHead, yHead);
+
+        removeGray(concat(xTail, yTail));
+        //console.log(currentHeadId);
+        if (currentHeadId != currentPoint) {
+            makeGray(currentHeadId);
+            snake.pop();
+        } else {
+            soundOnGotPoint();
+            removeRed(currentPoint);
+            makeGray(currentPoint);
+            currentPoint = generatePoint();
+            incScore();
+            makeRed(currentPoint);
+            newInterval();
+        }
+    }
+
+    function incScore() {
+        $("#score").html("score: "+score++);
+
+
+    }
+    function newInterval() {
+        console.log(delay);
+        delay = delay-speedUp;
+        clearInterval(interval);
+        interval = setInterval(draw, delay);
+        console.log(delay);
+    }
+    function concat(a, b) {
+        return ('0' + a.toString()).slice(-2) + ('0' + b.toString()).slice(-2);
+    }
+    function turnRight() {
+        direct = (direct + 1) % 4;
+        if (direct == up){
+            setVertical();
+
+        }else{
+            setHorizontal();
+        }
+    }
+    function makeGray(id) {
+        $("#" + id).addClass('gray');
+    }
+
+    function removeGray(id) {
+        $("#" + id).removeClass('gray');
+    }
+    function makeRed(id) {
+        $("#" + id).addClass('red');
+    }
+    function removeRed(id) {
+        $("#" + id).removeClass('red');
+    }
+    $(".myCell").click(function () {
+        $(this).addClass('gray');
+    });
+
+    function tableCreate() {
+        var div = document.getElementById('container'), tbl = document.createElement('table');
+        tbl.style.border = 'solid';
+        tbl.className = 'center';
+        tbl.id = 'gameCanvas';
+
+        for (var i = tableSizeY - 1; i >= 0; i--) {
+            var tr = tbl.insertRow();
+            for (var j = 0; j < tableSizeX; j++) {
+                var td = tr.insertCell();
+                td.className = 'myCell';
+                td.id = (
+                        ('0' + j.toString()).slice(-2)
+                        +
+                        ('0' + i.toString()).slice(-2)
+                );
+            }
+        }
+        div.appendChild(tbl);
+    }
+    function createArrayOfFreeCells() {
+        var ar = [];
+        for (var y = tableSizeY - 1; y >= 0; y--) {
+            for (var x = 0; x < tableSizeX; x++) {
+                ar.push([x, y]);
+                console.log([x, y]);
+            }
+        }
+        return ar;
+    }
+
+    function generatePoint() {
+        //printAr(allCells);
+        //printAr(snake);
+        var diff = allCells.filter(checkIfContainsSame);
+        if (diff.length == 0){
+            console.log("GAME OVER!");
+            gameOver();
+        }
+        printAr(diff);
+        var x = Math.floor((Math.random() * diff.length));
+        var el = diff[x];
+        return concat(el[0], el[1]);
+    }
+    function pause() {
+        if (!isPaused) {
+            clearInterval(interval);
+            isPaused = true;
+        }else{
+            interval = setInterval(draw,delay);
+            isPaused = false;
+        }
+    }
+    function setVertical() {
+        canTurnUpDown = false;
+        canTurnRightLeft = true;
+    }
+    function setHorizontal() {
+        canTurnUpDown = true;
+        canTurnRightLeft = false;
+    }
+    function restartInterval() {
+        clearInterval(interval);
+        interval = setInterval(draw, delay);
+        draw();
+    }
+    function whichButton(event) {
+        if (isGameOver==true){
+            return;
+        }
+        var inCode;
+        inCode = event.keyCode;
+        //console.log(inCode);
+        if (inCode == keyUp && canTurnUpDown==true) {
+            direct = up;
+            setVertical();
+            restartInterval();
+        }
+        if (inCode == keyRight && canTurnRightLeft==true) {
+            direct = right;
+            setHorizontal();
+            restartInterval();
+        }
+        if (inCode == keyDown && canTurnUpDown==true) {
+            direct = down;
+            setVertical();
+            restartInterval();
+        }
+        if (inCode == keyLeft  && canTurnRightLeft==true) {
+            direct = left;
+            setHorizontal();
+            restartInterval();
+        }
+        if (inCode == keySpace) {
+            pause();
+        }
+        //console.log(direct);
+    }
+    function soundBackGroundMusic() {
+        console.log('music');
+        var audio = new Audio('Cold_Night_Theme_Music_2.mp3');
+        audio.play();
+        audio.volume = 0.1;
+    }
+    function onload() {
+        tableCreate();
+        soundBackGroundMusic();
+        allCells = createArrayOfFreeCells();
+        printAr(allCells);
+        interval = setInterval(draw, delay);
+    }
+
+    function soundOnGotPoint() {
+        console.log('music');
+        var audio = new Audio('camera_click.wav');
+        audio.play();
+        audio.volume = 0.5;
+    }
+    function printAr(ar) {
+        //console.log("printing..");
+        for (var x = 0; x < ar.length; x++) {
+            //console.log(ar[x]);
+        }
+    }
+    function checkIfContainsSame(el) {
+        for (var i = 0; i<snake.length; i++){
+            if ((el[0]==snake[i][0]) && (el[1] == snake[i][1])){
+                return false;
+            }
+        }
+        return true;
+    }
+    function gameOver() {
+        isGameOver = true;
+        clearInterval(interval);
+        var tbl = document.getElementById('gameCanvas');
+        tbl.style.display = 'none';
+        var div = document.getElementById('container');
+        h11 = document.createElement('h1');
+        h11.textContent = "You ";
+        h11.className = 'textH1';
+        div.appendChild(h11);
+        h12 = document.createElement('h1');
+        h12.textContent = "are not";
+        h12.className = 'textH1';
+        div.appendChild(h12);
+        h13 = document.createElement('h1');
+        h13.textContent = "the one!";
+        h13.className = 'textH1';
+        div.appendChild(h13);
+    }
+</script>
+
+</html>
